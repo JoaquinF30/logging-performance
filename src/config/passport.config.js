@@ -1,12 +1,14 @@
 import passport from 'passport';
 import local from 'passport-local';
-import bcrypt from 'bcrypt';
 import GitHubStrategy from 'passport-github2';
 import { userModel } from "../dao/models/user.model.js";
-import { isValidPassword, createHash } from '../utils.js';
+import { isValidPassword, createHash, cookieExtractor } from '../utils.js';
 import config from "./config.js"
+import jwt from 'passport-jwt';
 
 const LocalStrategy = local.Strategy;
+const JWTStrategy = jwt.Strategy;
+const ExtractJWT = jwt.ExtractJwt;
 
 const initializePassport = () => {
   passport.use('register', new LocalStrategy({ passReqToCallback: true, usernameField: 'email' }, async (req, username, password, done) => {
@@ -15,7 +17,7 @@ const initializePassport = () => {
           const userExists = await userModel.findOne({ email: username });
 
           if (userExists) {
-            return done(null, false);
+            return done("El usuario ya existe", false);
           }
 
           const user = await userModel.create({
@@ -41,22 +43,39 @@ const initializePassport = () => {
       done(null, user);
   });
 
-  passport.use('login', new LocalStrategy({ usernameField: 'email',  }, async (username, password, done) => {
-    try {
-        const user = await userModel.findOne({ email: username }).lean();
-        if (!user) {
-          return done(null, false);
+  passport.use(
+    'jwt',
+    new JWTStrategy(
+      {
+        jwtFromRequest: ExtractJWT.fromExtractors([cookieExtractor]),
+        secretOrKey: 'secreto',
+      },
+      async (jwt_payload, done) => {
+        try {
+          return done(null, jwt_payload);
+        } catch (error) {
+          return done(error);
         }
-
-        if (!isValidPassword(user, password)) {
-          return done(null, false);
-        }
-
-        return done(null, user);
-    } catch (error) {
-        return done(error);
-    }})
+      }
+    )
   );
+
+  // passport.use('login', new LocalStrategy({ usernameField: 'email',  }, async (username, password, done) => {
+  //   try {
+  //       const user = await userModel.findOne({ email: username }).lean();
+  //       if (!user) {
+  //         return done(null, false);
+  //       }
+
+  //       if (!isValidPassword(user, password)) {
+  //         return done(null, false);
+  //       }
+
+  //       return done(null, user);
+  //   } catch (error) {
+  //       return done(error);
+  //   }})
+  // );
 
   passport.use(
     'github',

@@ -5,6 +5,8 @@ import jwt from "jsonwebtoken";
 
 const __filename = fileURLToPath(import.meta.url);
 
+const PRIVATE_KEY = "llavePrivada"
+
 export const __dirname = dirname(__filename);
 
 export const fieldMissing = (product) => {
@@ -38,12 +40,12 @@ export const createHash = password => bcrypt.hashSync(password, bcrypt.genSaltSy
 
 export const isValidPassword = (user, password) => bcrypt.compareSync(password, user.password);
 
-const generateToken = (user) => {
-    const token = jwt.sign({user}, PRIVATE_KEY, {expiresIn: "24h"})
+export const generateToken = (user) => {
+    const token = jwt.sign({ user }, PRIVATE_KEY, { expiresIn: 30 })
     return token;
 };
 
-const authToken = (req, res, next) => {
+export const authToken = (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if(!authHeader) {
@@ -59,4 +61,14 @@ const authToken = (req, res, next) => {
         req.user = credentials.user;
         next();
     })
-}
+};
+
+export const cookieExtractor = (req) => {
+    let token = null;
+    
+    if (req && req.cookies) {
+      token = req.cookies['token'];
+    }
+  
+    return token;
+};

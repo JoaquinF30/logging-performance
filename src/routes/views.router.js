@@ -11,7 +11,7 @@ router.use(express.json());
 const productManager = new ProductManager();
 const cartManager = new CartManager();
 
-router.get("/", async (req, res) => {
+router.get("/", privateRoutes, async (req, res) => {
     const { payload } = await productManager.getAllProducts();
 
     res.render("home", { 
